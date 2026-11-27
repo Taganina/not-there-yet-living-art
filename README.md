@@ -27,3 +27,8 @@ This site processes camera frames in the visitor's browser for pose detection. I
 ## Current prototype limitations
 
 This is an experimental visual-art prototype, not a production-hardened installation. Tracking quality depends on lighting, camera position, device performance, and browser support. The camera preview is not displayed. The artwork is generated locally in the browser. Body sensitivity is increased by default; use the Body sensitivity slider to adjust the reaction.
+
+
+## The Watching Portrait
+
+The project includes `portrait.jpg`, an artwork supplied for this installation. The portrait is rendered as the main artwork; the camera's pose landmarks estimate the visitor's position and gently shift the painted irises so the portrait appears to follow the viewer. The camera is processed locally in the browser.
