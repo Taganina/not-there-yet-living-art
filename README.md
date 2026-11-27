@@ -26,4 +26,4 @@ This site processes camera frames in the visitor's browser for pose detection. I
 
 ## Current prototype limitations
 
-This is an experimental visual-art prototype, not a production-hardened installation. Tracking quality depends on lighting, camera position, device performance, and browser support. The camera preview is not displayed. The artwork is generated locally in the browser.
+This is an experimental visual-art prototype, not a production-hardened installation. Tracking quality depends on lighting, camera position, device performance, and browser support. The camera preview is not displayed. The artwork is generated locally in the browser. Body sensitivity is increased by default; use the Body sensitivity slider to adjust the reaction.

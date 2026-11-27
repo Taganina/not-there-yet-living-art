@@ -42,7 +42,7 @@ button{cursor:pointer;font-size:11px;letter-spacing:.04em;transition:.2s}button:
 <div class="row"><label for="density">Particle density</label><input id="density" type="range" min="500" max="4200" step="100" value="2300"></div>
 <div class="row"><label for="energy">Movement energy</label><input id="energy" type="range" min=".3" max="2.5" step=".1" value="1.2"></div>
 <div class="row"><label for="trail">Flow / persistence</label><input id="trail" type="range" min="5" max="35" value="13"></div>
-<div class="row"><label for="response">Body influence</label><input id="response" type="range" min="0" max="100" value="85"></div>
+<div class="row"><label for="response">Body sensitivity</label><input id="response" type="range" min="0" max="200" step="5" value="160"></div>
 <button id="cameraBtn" class="primary">START CAMERA & BODY TRACKING</button>
 <div class="actions"><button id="newBtn">NEW COMPOSITION</button><button id="saveBtn">SAVE ARTWORK PNG</button></div>
 </div>
@@ -68,8 +68,8 @@ const t=frame*.003*energy,flow=Math.sin(p.y*.004+t+p.phase)*Math.cos(p.x*.003-t*
 fx+=Math.cos(flow*3+p.phase)*.12*energy;fy+=Math.sin(flow*3+p.phase)*.12*energy;
 const dx=p.x-cx,dy=p.y-cy,dist=Math.sqrt(dx*dx+dy*dy)+.1;fx+=(-dy/dist)*.018;fy+=(dx/dist)*.018;
 let nearest=null,nd=Infinity;for(const q of influences){const x=p.x-q.x,y=p.y-q.y,d=x*x+y*y;if(d<nd){nd=d;nearest=q}}
-if(nearest&&body>0){const d=Math.sqrt(nd)+1,reach=Math.min(1,(1-d/Math.max(W,H*.8)));if(reach>0){const push=(.7+2.4*reach)*body*energy;fx+=(p.x-nearest.x)/d*push*.075;fy+=(p.y-nearest.y)/d*push*.075;fx+=Math.sin(frame*.018+p.phase)*reach*.08;fy+=Math.cos(frame*.016+p.phase)*reach*.08}}
-p.vx=(p.vx+fx)*.986;p.vy=(p.vy+fy)*.986;p.x+=p.vx;p.y+=p.vy;
+if(nearest&&body>0){const d=Math.sqrt(nd)+1,reach=Math.min(1,(1-d/Math.max(W,H*.8)));if(reach>0){const push=(1.2+5.0*reach)*body*energy;fx+=(p.x-nearest.x)/d*push*.19;fy+=(p.y-nearest.y)/d*push*.19;fx+=Math.sin(frame*.018+p.phase)*reach*.16;fy+=Math.cos(frame*.016+p.phase)*reach*.16}}
+p.vx=(p.vx+fx)*.972;p.vy=(p.vy+fy)*.972;p.x+=p.vx;p.y+=p.vy;
 if(p.x< -10||p.x>W+10||p.y< -10||p.y>H+10){p.x=rand(0,W);p.y=rand(0,H);p.vx=p.vy=0}
 const speed=Math.min(1,Math.hypot(p.vx,p.vy)*.22),col=pal[(i+Math.floor(p.h))%pal.length];ctx.globalAlpha=.28+speed*.65;ctx.fillStyle=col;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.8+speed*1.7),0,Math.PI*2);ctx.fill();
 }
@@ -79,11 +79,11 @@ if(influences.length){for(let i=0;i<influences.length;i++){const a=influences[i]
 }
 async function startCamera(){const loader=document.getElementById('loader'),msg=document.getElementById('loadmsg');loader.classList.remove('hide');msg.textContent='Checking camera permission…';
 try{if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)throw new Error('Camera requires HTTPS. Open the published GitHub Pages address, not a downloaded HTML file.');
-stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'user'},width:{ideal:960},height:{ideal:540}}});video.srcObject=stream;await video.play();msg.textContent='Loading body-tracking model…';
+stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30,max:30}}});video.srcObject=stream;await video.play();msg.textContent='Loading body-tracking model…';
 const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
 const modelOptions={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'},runningMode:'VIDEO',numPoses:2,minPoseDetectionConfidence:.45,minPosePresenceConfidence:.45,minTrackingConfidence:.45};
 try{poseLandmarker=await PoseLandmarker.createFromOptions(vision,{...modelOptions,baseOptions:{...modelOptions.baseOptions,delegate:'GPU'}})}catch(gpuError){console.warn('GPU unavailable; using CPU',gpuError);poseLandmarker=await PoseLandmarker.createFromOptions(vision,modelOptions)}
-tracking=true;dot.classList.add('on');stateEl.textContent='BODY TRACKING ACTIVE';toast.textContent='You are part of the artwork. Move left, right, raise your arms or invite another person into the frame.';toast.classList.remove('hide');setTimeout(()=>toast.classList.add('hide'),5000);loader.classList.add('hide');document.getElementById('cameraBtn').textContent='STOP BODY TRACKING';trackLoop();
+tracking=true;dot.classList.add('on');stateEl.textContent='BODY TRACKING ACTIVE';toast.textContent='High-sensitivity mode is active. Move left or right, raise your arms, or step closer to create a stronger reaction.';toast.classList.remove('hide');setTimeout(()=>toast.classList.add('hide'),5000);loader.classList.add('hide');document.getElementById('cameraBtn').textContent='STOP BODY TRACKING';trackLoop();
 }catch(e){loader.classList.add('hide');toast.textContent='Could not start camera/tracking: '+e.message+' — On iPhone, use Safari, open the HTTPS GitHub Pages address, and allow Camera access in iPhone Settings > Safari > Camera.';toast.classList.remove('hide');console.error(e)}}
 function trackLoop(){if(!tracking)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;try{const res=poseLandmarker.detectForVideo(video,performance.now());poses=(res.landmarks||[]).map(p=>p.map(v=>({...v,visibility:v.visibility??1})));if(poses.length){dot.classList.add('on');stateEl.textContent=poses.length>1?'2 VISITORS IN THE ART':'YOU ARE IN THE ART'}else{stateEl.textContent='WAITING FOR VISITOR'}}catch(e){console.warn(e)}}requestAnimationFrame(trackLoop)}
 function stopCamera(){tracking=false;poses=[];if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;dot.classList.remove('on');stateEl.textContent='CAMERA NOT CONNECTED';document.getElementById('cameraBtn').textContent='START CAMERA & BODY TRACKING'}
