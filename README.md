@@ -32,3 +32,8 @@ This is an experimental visual-art prototype, not a production-hardened installa
 ## The Watching Portrait
 
 The project includes `portrait.jpg`, an artwork supplied for this installation. The portrait is rendered as the main artwork; the camera's pose landmarks estimate the visitor's position and gently shift the painted irises so the portrait appears to follow the viewer. The camera is processed locally in the browser.
+
+
+## The Living Face update
+
+The application now uses MediaPipe Face Landmarker in addition to Pose Landmarker. The visitor's face position, approximate size and head roll drive a smoothed transform of the complete original portrait. This replaces the earlier synthetic eye overlays. Face landmarks are processed in the browser; the camera stream is not uploaded by this app.

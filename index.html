@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NOT THERE YET — LIVING ART</title>
+<title>NOT THERE YET — THE LIVING FACE</title>
 <style>
 :root{color-scheme:dark;--bg:#05070d;--panel:rgba(12,17,29,.82);--line:rgba(180,210,255,.2);--txt:#eaf1ff;--muted:#9baac4}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:Inter,system-ui,Arial;color:var(--txt)}
@@ -35,9 +35,9 @@ button{cursor:pointer;font-size:11px;letter-spacing:.04em;transition:.2s}button:
 <body>
 <canvas id="art"></canvas><canvas id="overlay" style="display:none"></canvas><img id="portraitSource" src="./portrait.jpg" alt="Original oil painting portrait" style="display:none">
 <video id="video" playsinline muted></video><div id="grain"></div>
-<div class="top"><div class="brand"><div class="eyebrow">NOT THERE YET / EXPERIMENTAL ART</div><h1>LIVING ART <span style="color:#91dce8">LIVE</span></h1><p>YOUR PAINTING IS WATCHING YOU</p></div><div class="status"><span id="dot" class="dot"></span><span id="state">CAMERA NOT CONNECTED</span></div></div>
+<div class="top"><div class="brand"><div class="eyebrow">NOT THERE YET / EXPERIMENTAL ART</div><h1>LIVING ART <span style="color:#91dce8">LIVE</span></h1><p>YOUR PAINTING COMES ALIVE</p></div><div class="status"><span id="dot" class="dot"></span><span id="state">CAMERA NOT CONNECTED</span></div></div>
 <div class="panel">
-<h2>THE WATCHING PORTRAIT / LIVE CONTROLS</h2>
+<h2>THE LIVING FACE / LIVE CONTROLS</h2>
 <div class="row"><label for="palette">Colour universe</label><select id="palette"><option value="aurora">Aurora — cyan / violet</option><option value="ember">Ember — amber / red</option><option value="ocean">Deep ocean — blue / teal</option><option value="acid">Electric — lime / magenta</option><option value="mono">Monochrome — silver</option></select></div>
 <div class="row"><label for="density">Particle density</label><input id="density" type="range" min="500" max="4200" step="100" value="2300"></div>
 <div class="row"><label for="energy">Movement energy</label><input id="energy" type="range" min=".3" max="2.5" step=".1" value="1.2"></div>
@@ -46,14 +46,14 @@ button{cursor:pointer;font-size:11px;letter-spacing:.04em;transition:.2s}button:
 <button id="cameraBtn" class="primary">START CAMERA & BODY TRACKING</button>
 <div class="actions"><button id="newBtn">NEW COMPOSITION</button><button id="saveBtn">SAVE ARTWORK PNG</button></div>
 </div>
-<div class="hint">MOVE LEFT TO RIGHT<br>RAISE YOUR ARMS — CHANGE THE FLOW<br>CAMERA PROCESSING STAYS IN YOUR BROWSER</div>
+<div class="hint">MOVE LEFT TO RIGHT<br>RAISE YOUR ARMS — CHANGE THE FLOW<br>THE WHOLE PAINTED PORTRAIT FOLLOWS YOUR MOVEMENT</div>
 <div id="toast">Open this public HTTPS page in Safari or Chrome, allow camera access, then tap START CAMERA & BODY TRACKING.</div>
 <div id="loader" class="hide"><div class="loaderbox"><h2>INITIALISING LIVING ART</h2><div class="bar"><i></i></div><p id="loadmsg">Loading body-tracking model…<br>This may take a moment the first time.</p></div></div>
 <script type="module">
-import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+import { FilesetResolver, PoseLandmarker, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 const canvas=document.getElementById('art'),ctx=canvas.getContext('2d'),video=document.getElementById('video');
 const stateEl=document.getElementById('state'),dot=document.getElementById('dot'),toast=document.getElementById('toast');
-let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,2),particles=[],poseLandmarker=null,stream=null,lastVideoTime=-1,poses=[],tracking=false,frame=0,seed=Math.random()*1000,portrait=document.getElementById("portraitSource"),eyeX=0,eyeY=0;
+let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,2),particles=[],poseLandmarker=null,faceLandmarker=null,stream=null,lastVideoTime=-1,poses=[],face=null,tracking=false,frame=0,seed=Math.random()*1000,portrait=document.getElementById("portraitSource"),portraitX=0,portraitY=0,portraitScale=1,portraitAngle=0,portraitYaw=0;
 const palettes={aurora:['#6af0e5','#54a9ff','#a68aff','#f18ad8','#d9fff8'],ember:['#ffd27a','#ff855f','#ed4777','#8d274f','#fff0cb'],ocean:['#73e5e2','#3489bc','#3157a8','#a1d8ef','#e7ffff'],acid:['#d4ff53','#8df08b','#ff56bc','#8d6aff','#f4ffcb'],mono:['#ffffff','#aab9cc','#71839b','#e2e8f0','#52647d']};
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);initParticles()}
 function rand(a,b){return a+Math.random()*(b-a)}
@@ -65,27 +65,32 @@ function portraitLayout(){
  const w=portrait.naturalWidth*scale,h=portrait.naturalHeight*scale;
  return {x:(W-w)/2,y:(H-h)/2,w,h,scale};
 }
-function drawLivingEyes(layout){
- const nose=poses.length&&poses[0][0]&&poses[0][0].visibility>.25?poses[0][0]:null;
- const targetX=nose?(0.5-nose.x)*layout.w*.075:0;
- const targetY=nose?(0.5-nose.y)*layout.h*.045:0;
- eyeX+=(targetX-eyeX)*.22;eyeY+=(targetY-eyeY)*.22;
- const eyes=[{x:322/1405,y:744/2048},{x:704/1405,y:735/2048}];
- for(const e of eyes){
-  const x=layout.x+e.x*layout.w+eyeX,y=layout.y+e.y*layout.h+eyeY;
-  const r=layout.w*.020;
-  const g=ctx.createRadialGradient(x-r*.25,y-r*.35,r*.12,x,y,r);
-  g.addColorStop(0,'#b9e6ee');g.addColorStop(.28,'#477f9b');g.addColorStop(.72,'#19384b');g.addColorStop(1,'#09131c');
-  ctx.save();ctx.globalAlpha=.92;
-  ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r*.88,r,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#07121b';ctx.beginPath();ctx.ellipse(x+eyeX*.12,y+eyeY*.08,r*.39,r*.53,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,.88)';ctx.beginPath();ctx.arc(x-r*.22,y-r*.28,r*.16,0,Math.PI*2);ctx.fill();
-  ctx.restore();
+function drawLivingPortrait(layout){
+ // Face landmarks come from the visitor's face. They move the complete original painting,
+ // rather than drawing synthetic eyes over the painted eyes.
+ let tx=0,ty=0,ts=1,ta=0,tyaw=0;
+ if(face&&face.length>263){
+  const xs=face.map(p=>p.x),ys=face.map(p=>p.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const cx=(minX+maxX)/2,cy=(minY+maxY)/2,fw=maxX-minX;
+  // Mirror horizontal tracking to match the familiar selfie-camera experience.
+  tx=(.5-cx)*W*.34;
+  ty=(.48-cy)*H*.17;
+  ts=Math.max(.92,Math.min(1.09,1+(fw-.22)*.48));
+  const le=face[33],re=face[263],nose=face[1];
+  if(le&&re){ta=Math.max(-.10,Math.min(.10,Math.atan2(re.y-le.y,re.x-le.x)*-.42));
+    const eyeMid=(le.x+re.x)/2;tyaw=Math.max(-.12,Math.min(.12,(nose.x-eyeMid)*1.4));}
  }
+ portraitX+=(tx-portraitX)*.16;portraitY+=(ty-portraitY)*.16;
+ portraitScale+=(ts-portraitScale)*.12;portraitAngle+=(ta-portraitAngle)*.12;portraitYaw+=(tyaw-portraitYaw)*.12;
+ ctx.save();ctx.translate(layout.x+layout.w/2+portraitX,layout.y+layout.h/2+portraitY);
+ ctx.rotate(portraitAngle);ctx.transform(1,0,portraitYaw,1,0,0);ctx.scale(portraitScale,portraitScale);
+ ctx.globalAlpha=.98;ctx.drawImage(portrait,-layout.w/2,-layout.h/2,layout.w,layout.h);ctx.restore();
 }
+
 function draw(){requestAnimationFrame(draw);frame++;const trail=+document.getElementById('trail').value;ctx.fillStyle='rgba(4,6,13,0.24)';ctx.fillRect(0,0,W,H);
 const layout=portrait.complete&&portrait.naturalWidth?portraitLayout():null;
-if(layout){ctx.save();ctx.globalAlpha=.96;ctx.drawImage(portrait,layout.x,layout.y,layout.w,layout.h);ctx.restore();drawLivingEyes(layout);}
+if(layout){drawLivingPortrait(layout);}
 
 const pal=palettes[document.getElementById('palette').value],energy=+document.getElementById('energy').value,body=+document.getElementById('response').value/100,influences=getInfluences();
 const cx=W*.5,cy=H*.52;
@@ -109,10 +114,12 @@ stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:
 const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
 const modelOptions={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'},runningMode:'VIDEO',numPoses:2,minPoseDetectionConfidence:.45,minPosePresenceConfidence:.45,minTrackingConfidence:.45};
 try{poseLandmarker=await PoseLandmarker.createFromOptions(vision,{...modelOptions,baseOptions:{...modelOptions.baseOptions,delegate:'GPU'}})}catch(gpuError){console.warn('GPU unavailable; using CPU',gpuError);poseLandmarker=await PoseLandmarker.createFromOptions(vision,modelOptions)}
-tracking=true;dot.classList.add('on');stateEl.textContent='BODY TRACKING ACTIVE';toast.textContent='High-sensitivity mode is active. Move left or right, raise your arms, or step closer to create a stronger reaction.';toast.classList.remove('hide');setTimeout(()=>toast.classList.add('hide'),5000);loader.classList.add('hide');document.getElementById('cameraBtn').textContent='STOP BODY TRACKING';trackLoop();
+const faceOptions={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'},runningMode:'VIDEO',numFaces:1,minFaceDetectionConfidence:.45,minFacePresenceConfidence:.45,minTrackingConfidence:.45,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false};
+try{faceLandmarker=await FaceLandmarker.createFromOptions(vision,{...faceOptions,baseOptions:{...faceOptions.baseOptions,delegate:'GPU'}})}catch(faceGpuError){console.warn('Face GPU unavailable; using CPU',faceGpuError);faceLandmarker=await FaceLandmarker.createFromOptions(vision,faceOptions)}
+tracking=true;dot.classList.add('on');stateEl.textContent='BODY TRACKING ACTIVE';toast.textContent='Face tracking is active. The entire painted portrait follows your position, distance and head tilt.';toast.classList.remove('hide');setTimeout(()=>toast.classList.add('hide'),5000);loader.classList.add('hide');document.getElementById('cameraBtn').textContent='STOP BODY TRACKING';trackLoop();
 }catch(e){loader.classList.add('hide');toast.textContent='Could not start camera/tracking: '+e.message+' — On iPhone, use Safari, open the HTTPS GitHub Pages address, and allow Camera access in iPhone Settings > Safari > Camera.';toast.classList.remove('hide');console.error(e)}}
-function trackLoop(){if(!tracking)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;try{const res=poseLandmarker.detectForVideo(video,performance.now());poses=(res.landmarks||[]).map(p=>p.map(v=>({...v,visibility:v.visibility??1})));if(poses.length){dot.classList.add('on');stateEl.textContent=poses.length>1?'THE PORTRAIT SEES YOU BOTH':'THE PORTRAIT IS WATCHING'}else{stateEl.textContent='WAITING FOR A VISITOR'}}catch(e){console.warn(e)}}requestAnimationFrame(trackLoop)}
-function stopCamera(){tracking=false;poses=[];if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;dot.classList.remove('on');stateEl.textContent='CAMERA NOT CONNECTED';document.getElementById('cameraBtn').textContent='START CAMERA & BODY TRACKING'}
+function trackLoop(){if(!tracking)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;try{const now=performance.now(),res=poseLandmarker.detectForVideo(video,now),fr=faceLandmarker.detectForVideo(video,now);poses=(res.landmarks||[]).map(p=>p.map(v=>({...v,visibility:v.visibility??1})));face=fr.faceLandmarks?.[0]||null;if(face){dot.classList.add('on');stateEl.textContent='THE WHOLE PORTRAIT IS FOLLOWING YOU'}else if(poses.length){dot.classList.add('on');stateEl.textContent='BODY TRACKING — FINDING FACE'}else{stateEl.textContent='WAITING FOR A VISITOR'}}catch(e){console.warn(e)}}requestAnimationFrame(trackLoop)}
+function stopCamera(){tracking=false;poses=[];face=null;faceLandmarker?.close?.();faceLandmarker=null;poseLandmarker?.close?.();poseLandmarker=null;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;dot.classList.remove('on');stateEl.textContent='CAMERA NOT CONNECTED';document.getElementById('cameraBtn').textContent='START CAMERA & BODY TRACKING'}
 document.getElementById('cameraBtn').addEventListener('click',()=>tracking?stopCamera():startCamera());
 document.getElementById('newBtn').addEventListener('click',()=>{seed=Math.random()*1000;initParticles();ctx.fillStyle='#05070d';ctx.fillRect(0,0,W,H);toast.textContent='A new visual universe has begun.';toast.classList.remove('hide');setTimeout(()=>toast.classList.add('hide'),1800)});
 document.getElementById('saveBtn').addEventListener('click',()=>{const a=document.createElement('a');a.download='NOT-THERE-YET-LIVING-ART-002.png';a.href=canvas.toDataURL('image/png');a.click()});
