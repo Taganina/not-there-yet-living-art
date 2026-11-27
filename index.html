@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NOT THERE YET — LIVING ART</title>
+<style>
+:root{color-scheme:dark;--bg:#05070d;--panel:rgba(12,17,29,.82);--line:rgba(180,210,255,.2);--txt:#eaf1ff;--muted:#9baac4}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:Inter,system-ui,Arial;color:var(--txt)}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#video{position:fixed;width:2px;height:2px;opacity:.001;pointer-events:none}
+#grain{position:absolute;inset:0;pointer-events:none;opacity:.12;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E")}
+.top{position:fixed;top:22px;left:26px;right:26px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+.brand{pointer-events:auto}.brand .eyebrow{font-size:10px;letter-spacing:.32em;color:#9ab5d8}.brand h1{font-size:clamp(17px,2.2vw,27px);font-weight:500;letter-spacing:.13em;margin:7px 0 0}.brand p{margin:6px 0;color:var(--muted);font-size:11px;letter-spacing:.08em}
+.status{font-size:11px;letter-spacing:.1em;color:#b9c8df;padding:9px 12px;border:1px solid var(--line);border-radius:30px;background:rgba(7,11,20,.45);backdrop-filter:blur(12px)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#e0a85e;margin-right:8px}.dot.on{background:#72e7c2;box-shadow:0 0 12px #72e7c2}
+.panel{position:fixed;left:22px;bottom:22px;width:min(330px,calc(100vw - 44px));padding:17px;border:1px solid var(--line);border-radius:15px;background:var(--panel);backdrop-filter:blur(18px);box-shadow:0 12px 50px #0008}
+.panel h2{font-size:10px;letter-spacing:.24em;font-weight:600;color:#9db4d6;margin:0 0 15px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 0;font-size:12px;color:#dce7f8}
+input[type=range]{width:135px;accent-color:#85d9e9}
+select,button{font:inherit;color:var(--txt);background:#182338;border:1px solid #40516d;border-radius:8px;padding:9px 11px}
+select{max-width:150px;font-size:11px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}
+button{cursor:pointer;font-size:11px;letter-spacing:.04em;transition:.2s}button:hover{background:#263956;border-color:#91cfe0}button.primary{background:#d9f4f4;color:#09131c;border-color:#d9f4f4;font-weight:700}
+#cameraBtn{width:100%;margin-top:8px}
+.hint{position:fixed;right:25px;bottom:25px;text-align:right;color:#9eabc0;font-size:11px;line-height:1.7;max-width:270px;text-shadow:0 2px 10px #000}
+#toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);padding:14px 18px;border:1px solid var(--line);border-radius:12px;background:#0b1220dd;color:#dcecff;font-size:12px;letter-spacing:.05em;max-width:min(90vw,480px);text-align:center;line-height:1.6;backdrop-filter:blur(14px)}
+#toast.hide{display:none}
+#loader{position:fixed;inset:0;display:grid;place-items:center;background:#05070dee;z-index:5;text-align:center;padding:30px}
+#loader.hide{display:none}.loaderbox{max-width:440px}.loaderbox h2{font-size:14px;letter-spacing:.24em;font-weight:500}.loaderbox p{font-size:12px;color:var(--muted);line-height:1.7}.bar{height:2px;background:#26364c;margin:22px 0;overflow:hidden}.bar i{display:block;height:100%;width:35%;background:#9ce9eb;animation:load 1.5s infinite}@keyframes load{to{transform:translateX(300%)}}
+@supports(padding:max(0px)){.top{top:max(12px,env(safe-area-inset-top))}.panel{bottom:max(10px,env(safe-area-inset-bottom))}}
+@media(max-width:650px){.top{top:12px;left:12px;right:12px}.brand h1{font-size:19px}.brand p{font-size:9px}.panel{left:10px;bottom:10px;width:calc(100vw - 20px);max-height:47vh;overflow:auto;padding:12px}.panel h2{margin-bottom:8px}.hint{display:none}.status{font-size:9px}.row{margin:7px 0;font-size:11px}.row input[type=range]{width:40vw}button{min-height:40px}}
+</style>
+</head>
+<body>
+<canvas id="art"></canvas><canvas id="overlay" style="display:none"></canvas>
+<video id="video" playsinline muted></video><div id="grain"></div>
+<div class="top"><div class="brand"><div class="eyebrow">NOT THERE YET / EXPERIMENTAL ART</div><h1>LIVING ART <span style="color:#91dce8">LIVE</span></h1><p>THE ART THAT RESPONDS TO YOU</p></div><div class="status"><span id="dot" class="dot"></span><span id="state">CAMERA NOT CONNECTED</span></div></div>
+<div class="panel">
+<h2>ART DIRECTION / LIVE CONTROLS</h2>
+<div class="row"><label for="palette">Colour universe</label><select id="palette"><option value="aurora">Aurora — cyan / violet</option><option value="ember">Ember — amber / red</option><option value="ocean">Deep ocean — blue / teal</option><option value="acid">Electric — lime / magenta</option><option value="mono">Monochrome — silver</option></select></div>
+<div class="row"><label for="density">Particle density</label><input id="density" type="range" min="500" max="4200" step="100" value="2300"></div>
+<div class="row"><label for="energy">Movement energy</label><input id="energy" type="range" min=".3" max="2.5" step=".1" value="1.2"></div>
+<div class="row"><label for="trail">Flow / persistence</label><input id="trail" type="range" min="5" max="35" value="13"></div>
+<div class="row"><label for="response">Body influence</label><input id="response" type="range" min="0" max="100" value="85"></div>
+<button id="cameraBtn" class="primary">START CAMERA & BODY TRACKING</button>
+<div class="actions"><button id="newBtn">NEW COMPOSITION</button><button id="saveBtn">SAVE ARTWORK PNG</button></div>
+</div>
+<div class="hint">MOVE LEFT TO RIGHT<br>RAISE YOUR ARMS — CHANGE THE FLOW<br>CAMERA PROCESSING STAYS IN YOUR BROWSER</div>
+<div id="toast">Open this public HTTPS page in Safari or Chrome, allow camera access, then tap START CAMERA & BODY TRACKING.</div>
+<div id="loader" class="hide"><div class="loaderbox"><h2>INITIALISING LIVING ART</h2><div class="bar"><i></i></div><p id="loadmsg">Loading body-tracking model…<br>This may take a moment the first time.</p></div></div>
+<script type="module">
+import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const canvas=document.getElementById('art'),ctx=canvas.getContext('2d'),video=document.getElementById('video');
+const stateEl=document.getElementById('state'),dot=document.getElementById('dot'),toast=document.getElementById('toast');
+let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,2),particles=[],poseLandmarker=null,stream=null,lastVideoTime=-1,poses=[],tracking=false,frame=0,seed=Math.random()*1000;
+const palettes={aurora:['#6af0e5','#54a9ff','#a68aff','#f18ad8','#d9fff8'],ember:['#ffd27a','#ff855f','#ed4777','#8d274f','#fff0cb'],ocean:['#73e5e2','#3489bc','#3157a8','#a1d8ef','#e7ffff'],acid:['#d4ff53','#8df08b','#ff56bc','#8d6aff','#f4ffcb'],mono:['#ffffff','#aab9cc','#71839b','#e2e8f0','#52647d']};
+function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);initParticles()}
+function rand(a,b){return a+Math.random()*(b-a)}
+function initParticles(){const n=+document.getElementById('density').value;particles=Array.from({length:n},()=>({x:rand(0,W),y:rand(0,H),ox:rand(0,W),oy:rand(0,H),vx:0,vy:0,r:rand(.45,2.0),phase:rand(0,Math.PI*2),h:rand(0,5)}))}
+function normPoint(p){return {x:(1-p.x)*W,y:p.y*H}}
+function getInfluences(){let pts=[];for(const pose of poses){const ids=[0,11,12,13,14,15,16,23,24,25,26,27,28];for(const id of ids){const p=pose[id];if(p&&p.visibility>.35)pts.push({...normPoint(p),vis:p.visibility||1,id})}}return pts}
+function draw(){requestAnimationFrame(draw);frame++;const trail=+document.getElementById('trail').value;ctx.fillStyle=`rgba(4,6,13,${trail/100})`;ctx.fillRect(0,0,W,H);
+const pal=palettes[document.getElementById('palette').value],energy=+document.getElementById('energy').value,body=+document.getElementById('response').value/100,influences=getInfluences();
+const cx=W*.5,cy=H*.52;
+for(let i=0;i<particles.length;i++){const p=particles[i];let fx=0,fy=0;
+const t=frame*.003*energy,flow=Math.sin(p.y*.004+t+p.phase)*Math.cos(p.x*.003-t*.7);
+fx+=Math.cos(flow*3+p.phase)*.12*energy;fy+=Math.sin(flow*3+p.phase)*.12*energy;
+const dx=p.x-cx,dy=p.y-cy,dist=Math.sqrt(dx*dx+dy*dy)+.1;fx+=(-dy/dist)*.018;fy+=(dx/dist)*.018;
+let nearest=null,nd=Infinity;for(const q of influences){const x=p.x-q.x,y=p.y-q.y,d=x*x+y*y;if(d<nd){nd=d;nearest=q}}
+if(nearest&&body>0){const d=Math.sqrt(nd)+1,reach=Math.min(1,(1-d/Math.max(W,H*.8)));if(reach>0){const push=(.7+2.4*reach)*body*energy;fx+=(p.x-nearest.x)/d*push*.075;fy+=(p.y-nearest.y)/d*push*.075;fx+=Math.sin(frame*.018+p.phase)*reach*.08;fy+=Math.cos(frame*.016+p.phase)*reach*.08}}
+p.vx=(p.vx+fx)*.986;p.vy=(p.vy+fy)*.986;p.x+=p.vx;p.y+=p.vy;
+if(p.x< -10||p.x>W+10||p.y< -10||p.y>H+10){p.x=rand(0,W);p.y=rand(0,H);p.vx=p.vy=0}
+const speed=Math.min(1,Math.hypot(p.vx,p.vy)*.22),col=pal[(i+Math.floor(p.h))%pal.length];ctx.globalAlpha=.28+speed*.65;ctx.fillStyle=col;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.8+speed*1.7),0,Math.PI*2);ctx.fill();
+}
+ctx.globalAlpha=1;
+// Fine luminous filaments connect nearby tracked joints to create a living field.
+if(influences.length){for(let i=0;i<influences.length;i++){const a=influences[i];for(let j=i+1;j<influences.length;j++){const b=influences[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<Math.min(W,H)*.23){ctx.strokeStyle=pal[(i+j)%pal.length];ctx.globalAlpha=(1-d/(Math.min(W,H)*.23))*.15;ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo((a.x+b.x)/2+Math.sin(frame*.01+i)*35,(a.y+b.y)/2+Math.cos(frame*.01+j)*35,b.x,b.y);ctx.stroke()}}}ctx.globalAlpha=1}
+}
+async function startCamera(){const loader=document.getElementById('loader'),msg=document.getElementById('loadmsg');loader.classList.remove('hide');msg.textContent='Checking camera permission…';
+try{if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)throw new Error('Camera requires HTTPS. Open the published GitHub Pages address, not a downloaded HTML file.');
+stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'user'},width:{ideal:960},height:{ideal:540}}});video.srcObject=stream;await video.play();msg.textContent='Loading body-tracking model…';
+const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+const modelOptions={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'},runningMode:'VIDEO',numPoses:2,minPoseDetectionConfidence:.45,minPosePresenceConfidence:.45,minTrackingConfidence:.45};
+try{poseLandmarker=await PoseLandmarker.createFromOptions(vision,{...modelOptions,baseOptions:{...modelOptions.baseOptions,delegate:'GPU'}})}catch(gpuError){console.warn('GPU unavailable; using CPU',gpuError);poseLandmarker=await PoseLandmarker.createFromOptions(vision,modelOptions)}
+tracking=true;dot.classList.add('on');stateEl.textContent='BODY TRACKING ACTIVE';toast.textContent='You are part of the artwork. Move left, right, raise your arms or invite another person into the frame.';toast.classList.remove('hide');setTimeout(()=>toast.classList.add('hide'),5000);loader.classList.add('hide');document.getElementById('cameraBtn').textContent='STOP BODY TRACKING';trackLoop();
+}catch(e){loader.classList.add('hide');toast.textContent='Could not start camera/tracking: '+e.message+' — On iPhone, use Safari, open the HTTPS GitHub Pages address, and allow Camera access in iPhone Settings > Safari > Camera.';toast.classList.remove('hide');console.error(e)}}
+function trackLoop(){if(!tracking)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;try{const res=poseLandmarker.detectForVideo(video,performance.now());poses=(res.landmarks||[]).map(p=>p.map(v=>({...v,visibility:v.visibility??1})));if(poses.length){dot.classList.add('on');stateEl.textContent=poses.length>1?'2 VISITORS IN THE ART':'YOU ARE IN THE ART'}else{stateEl.textContent='WAITING FOR VISITOR'}}catch(e){console.warn(e)}}requestAnimationFrame(trackLoop)}
+function stopCamera(){tracking=false;poses=[];if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;dot.classList.remove('on');stateEl.textContent='CAMERA NOT CONNECTED';document.getElementById('cameraBtn').textContent='START CAMERA & BODY TRACKING'}
+document.getElementById('cameraBtn').addEventListener('click',()=>tracking?stopCamera():startCamera());
+document.getElementById('newBtn').addEventListener('click',()=>{seed=Math.random()*1000;initParticles();ctx.fillStyle='#05070d';ctx.fillRect(0,0,W,H);toast.textContent='A new visual universe has begun.';toast.classList.remove('hide');setTimeout(()=>toast.classList.add('hide'),1800)});
+document.getElementById('saveBtn').addEventListener('click',()=>{const a=document.createElement('a');a.download='NOT-THERE-YET-LIVING-ART-002.png';a.href=canvas.toDataURL('image/png');a.click()});
+document.getElementById('density').addEventListener('input',initParticles);addEventListener('resize',resize);resize();draw();
+</script>
+</body></html>
