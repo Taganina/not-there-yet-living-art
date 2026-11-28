@@ -37,3 +37,8 @@ The project includes `portrait.jpg`, an artwork supplied for this installation. 
 ## The Living Face update
 
 The application now uses MediaPipe Face Landmarker in addition to Pose Landmarker. The visitor's face position, approximate size and head roll drive a smoothed transform of the complete original portrait. This replaces the earlier synthetic eye overlays. Face landmarks are processed in the browser; the camera stream is not uploaded by this app.
+
+
+## Living Face 2.5D update
+
+The portrait is rendered as a triangle mesh. Face-landmark head-turn estimates drive subtle deformation around the painted face, while visitor position shifts the whole artwork. This is a 2.5D illusion, not true 3D reconstruction: one flat image cannot reveal hidden side surfaces or unseen facial details. A more lifelike turn requires a manually prepared depth map with separated layers, or a 3D model based on the painting.
